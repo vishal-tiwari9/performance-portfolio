@@ -9,7 +9,7 @@ export interface Holding {
     exchange:string; // NSE or BSE 
 }
 
-export interface MArketData{
+export interface MarketData{
     ticker:string;
     cmp:number; // Current market Price 
     peRatio:number |null;
@@ -30,6 +30,15 @@ export interface EnrichedHolding extends Holding{
     error?:string;
 
 
+
+}
+
+export interface SectorSummary{
+    sector:string;
+    holdings:EnrichedHolding[];
+    totalInvestment:number;
+    totalPresentValue:number;
+    totalGainLoss:number;
 
 }
 
