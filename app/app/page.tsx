@@ -1,65 +1,76 @@
-import Image from "next/image";
+// app/page.tsx
+"use client";
+import useSWR from "swr";
+import { PORTFOLIO_HOLDINGS } from "@/lib/portfolio-data";
+import { enrichHoldings, groupBySector } from "@/lib/enrich";
+import { MarketData } from "@/lib/types";
+import SectorGroup from "@/components/SectorGroup";
 
-export default function Home() {
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+export default function DashboardPage() {
+  // SWR — automatically refreshes every 15 seconds
+  const { data, error, isLoading, isValidating } = useSWR<{
+    data: MarketData[];
+    fetchedAt: string;
+  }>("/api/market-data", fetcher, {
+    refreshInterval: 15000,       // 15 sec auto-refresh
+    revalidateOnFocus: true,      // Tab switch karo toh bhi refresh
+    dedupingInterval: 10000,      // Same request 10 sec mein duplicate mat karo
+  });
+
+  const enriched = data
+    ? enrichHoldings(PORTFOLIO_HOLDINGS, data.data)
+    : enrichHoldings(PORTFOLIO_HOLDINGS, []); // Loading state mein 0 values
+
+  const sectors = groupBySector(enriched);
+
+  const totalInvestment = enriched.reduce((s, h) => s + h.investment, 0);
+  const totalPV = enriched.reduce((s, h) => s + h.presentValue, 0);
+  const totalGL = totalPV - totalInvestment;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="min-h-screen bg-gray-950 text-white p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Priyanshu's Portfolio</h1>
+        <div className="text-sm text-gray-400">
+          {isValidating && <span className="text-blue-400 mr-3">↻ Refreshing...</span>}
+          {data?.fetchedAt && (
+            <span>Updated: {new Date(data.fetchedAt).toLocaleTimeString("en-IN")}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Portfolio Summary */}
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="bg-gray-900 rounded-xl p-4">
+          <p className="text-gray-400 text-sm">Total Invested</p>
+          <p className="text-xl font-bold">₹{(totalInvestment / 100000).toFixed(2)}L</p>
+        </div>
+        <div className="bg-gray-900 rounded-xl p-4">
+          <p className="text-gray-400 text-sm">Present Value</p>
+          <p className="text-xl font-bold">₹{(totalPV / 100000).toFixed(2)}L</p>
+        </div>
+        <div className="bg-gray-900 rounded-xl p-4">
+          <p className="text-gray-400 text-sm">Total P&L</p>
+          <p className={`text-xl font-bold ${totalGL >= 0 ? "text-green-400" : "text-red-400"}`}>
+            {totalGL >= 0 ? "+" : ""}₹{Math.abs(totalGL).toLocaleString("en-IN")}
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </div>
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 mb-6">
+          ⚠️ Market data fetch failed. Showing last known values.
         </div>
-      </main>
-    </div>
+      )}
+
+      {/* Sector Tables */}
+      {sectors.map((sector) => (
+        <SectorGroup key={sector.sector} sector={sector} isLoading={isLoading} />
+      ))}
+    </main>
   );
 }
