@@ -38,7 +38,7 @@ export default function StockRow({
       <td className={`px-4 py-3 text-right font-medium ${glClass}`}>
         {isLoading
           ? loadingCell
-          : `${isGain ? "+" : ""}₹${Math.abs(holding.gainLoss).toLocaleString("en-IN")}`}
+          : `${isGain ? "+" : ""}₹${Math.abs(holding.gainloss).toLocaleString("en-IN")}`}
       </td>
       <td className={`px-4 py-3 text-right ${glClass}`}>
         {isLoading

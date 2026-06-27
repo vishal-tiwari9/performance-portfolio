@@ -13,7 +13,7 @@ export function enrichHoldings(
     const investment = holding.purchasePrice * holding.qty;
     const cmp = market?.cmp ?? 0;
     const presentValue = cmp * holding.qty;
-    const gainLoss = presentValue - investment;
+    const gainloss = presentValue - investment;
 
     return {
       ...holding,
@@ -21,8 +21,8 @@ export function enrichHoldings(
       portfolioPercent: (investment / TOTAL_INVESTMENT) * 100,
       cmp,
       presentValue,
-      gainLoss,
-      gainLossPercent: investment > 0 ? (gainLoss / investment) * 100 : 0,
+      gainloss,
+      gainLossPercent: investment > 0 ? (gainloss / investment) * 100 : 0,
       peRatio: market?.peRatio ?? null,
       latestEarnings: market?.latestEarnings ?? null,
       error: market?.error,
